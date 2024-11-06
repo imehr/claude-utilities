@@ -2,7 +2,7 @@
 
 A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen, and export capabilities.
 
-![Extension UI](assets/claude-utility-UI.png)
+<img src="assets/screenshots/screenshot-1.png" alt="Extension UI" width="400"/>
 
 ## Features
 
@@ -16,7 +16,7 @@ A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen,
 - One-click reset
 
 ## Extension Icon
-![Extension Icon](icons/icon-128.png)
+<img src="icons/icon-128.png" alt="Extension Icon" width="128"/>
 
 ## Installation
 
@@ -44,22 +44,6 @@ A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen,
      - PNG: Saves file and copies to clipboard automatically
      - Word: Exports formatted document
 
-## Interface
-
-The extension provides a simple interface for controlling the artifact panel:
-
-<img src="docs/images/claude-utility-UI.png" alt="Extension Interface" width="400"/>
-
-1. Width Control Section:
-   - Input field for precise width in pixels
-   - Resize button to apply width
-   - Reset button to restore default
-   - Visual progress bar showing width relative to window
-
-2. Export Section:
-   - PNG export (with clipboard copy)
-   - Word export
-
 ## Development
 
 The extension is built using:
@@ -68,3 +52,27 @@ The extension is built using:
 - Chrome Extension APIs
 
 ### Project Structure
+```
+claude-artifact-expander/
+├── icons/                 # Extension icons
+│   ├── icon-16.png
+│   ├── icon-32.png
+│   ├── icon-48.png
+│   ├── icon-128.png
+│   └── icon-256.png
+├── assets/               # Documentation assets
+│   └── screenshots/
+│       └── screenshot-1.png
+├── manifest.json         # Extension manifest
+├── popup.html           # Extension popup UI
+├── popup.js             # Popup functionality
+└── README.md           # This file
+```
+
+## License
+
+MIT License - see LICENSE file for details
+
+## Author
+
+Mehran Mozaffari
