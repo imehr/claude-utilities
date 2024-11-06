@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .expand-icon {
+      font-size: 20px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #444;
+    }
+    .width-control {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    input[type="number"] {
+      flex: 1;
+    }
+    .action-btn {
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    .action-btn:hover {
+      background-color: #9B4B30;
+    }
+    .reset-btn {
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .progress-bar {
+      height: 4px;
+      background-color: #B75B3C;
+      border-radius: 2px;
+      margin: 20px 0;
+    }
+    .display-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .display-option:hover {
+      background-color: #f5f5f5;
+    }
+    .export-buttons {
+      display: flex;
+      gap: 15px;
+    }
+    .export-btn {
+      flex: 1;
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .export-btn:hover {
+      background-color: #9B4B30;
+    }
+    .icon {
+      font-size: 18px;
+    }
+    .icon-expand {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>');
+    }
+    .icon-monitor {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>');
+    }
+    .icon-download {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>');
+    }
+  </style>
+</head>
+<body>
+  <div class="title">
+    <span class="icon-expand"></span>
+    <h1>Artifact Panel Controls</h1>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Panel Width (pixels)</div>
+    <div class="width-control">
+      <input type="number" id="width" value="1500" min="500" max="3000">
+      <button class="action-btn" id="resizeBtn">Resize</button>
+      <button class="reset-btn" id="resetBtn">Reset</button>
+    </div>
+    <div class="progress-bar"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Display Options</div>
+    <div class="display-option" id="fullscreenBtn">
+      <span class="icon-monitor"></span>
+      Toggle Fullscreen
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Export Content</div>
+    <div class="export-buttons">
+      <button class="export-btn" id="screenshotBtn">
+        <span class="icon-download"></span>
+        Export as PNG
+      </button>
+      <button class="export-btn" id="wordBtn">
+        <span class="icon-download"></span>
+        Export as Word
+      </button>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html> 
