@@ -2,7 +2,7 @@
 
 A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen, and export capabilities.
 
-<img src="docs/images/claude-utility-UI.png" alt="Extension UI" width="400"/>
+<img src="https://raw.githubusercontent.com/imehr/claude-utilities/main/docs/images/claude-utility-UI.png" alt="Extension UI" width="400"/>
 
 ## Features
 
@@ -16,7 +16,7 @@ A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen,
 - One-click reset
 
 ## Extension Icon
-<img src="icons/icon-128.png" alt="Extension Icon" width="128"/>
+<img src="https://raw.githubusercontent.com/imehr/claude-utilities/main/icons/icon-128.png" alt="Extension Icon" width="128"/>
 
 ## Installation
 
