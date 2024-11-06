@@ -27,3 +27,5 @@ npm-debug.log*
 # Temporary files
 *.tmp
 *.temp 
+
+requirements.md
