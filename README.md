@@ -44,6 +44,10 @@ A Chrome extension to enhance Claude's artifact panel with resizing, fullscreen,
      - PNG: Saves file and copies to clipboard automatically
      - Word: Exports formatted document
 
+## Privacy
+
+For information about data handling and privacy, please see our [Privacy Policy](PRIVACY.md).
+
 ## Development
 
 The extension is built using:
