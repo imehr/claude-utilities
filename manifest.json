@@ -16,11 +16,11 @@
     "scripting",
     "storage",
     "downloads",
-    "tabs",
     "clipboardWrite"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://*.anthropic.com/*",
+    "https://claude.ai/*"
   ],
   "action": {
     "default_popup": "popup.html",
@@ -33,6 +33,9 @@
   },
   "web_accessible_resources": [{
     "resources": ["html2canvas.min.js"],
-    "matches": ["<all_urls>"]
+    "matches": [
+      "https://*.anthropic.com/*",
+      "https://claude.ai/*"
+    ]
   }]
 } 
