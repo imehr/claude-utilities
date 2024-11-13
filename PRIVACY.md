@@ -69,4 +69,4 @@ If you have any questions about this Privacy Policy, please create an issue in o
 
 ## Open Source
 
-This extension is open source, and its complete source code is available for review at [Your Repository URL]. 
+This extension is open source, and its complete source code is available for review at [Claude Artifact Expander](https://github.com/imehr/claude-utilities/tree/main). 
