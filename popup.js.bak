@@ -1,0 +1,1111 @@
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM Content Loaded - Starting initialization');
+  
+  // Debug log for DOM structure
+  console.log('Popup DOM structure:', document.documentElement.innerHTML);
+  
+  function getButtonWithLogging(id) {
+    const element = document.getElementById(id);
+    console.log(`Looking for button #${id}:`, {
+      found: !!element,
+      element: element,
+      isVisible: element ? window.getComputedStyle(element).display !== 'none' : false,
+      hasClickHandler: element ? element.onclick !== null : false
+    });
+    return element;
+  }
+
+  function addClickHandler(element, handler) {
+    if (!element) {
+      console.error(`Cannot add click handler - element is null`);
+      return false;
+    }
+    
+    try {
+      // Remove any existing listeners first
+      const freshElement = element.cloneNode(true);
+      element.parentNode.replaceChild(freshElement, element);
+      
+      // Add the new click handler
+      freshElement.addEventListener('click', handler);
+      console.log(`Successfully added click handler to ${element.id}`);
+      return true;
+    } catch (error) {
+      console.error(`Error adding click handler to ${element.id}:`, error);
+      return false;
+    }
+  }
+
+  const widthInput = getButtonWithLogging('width');
+  const resizeBtn = getButtonWithLogging('resizeBtn');
+  const resetBtn = getButtonWithLogging('resetBtn');
+  const fullscreenBtn = getButtonWithLogging('fullscreenBtn');
+  const wordBtn = getButtonWithLogging('wordBtn');
+  const codeUiScreenshotBtn = getButtonWithLogging('codeUiScreenshotBtn');
+  const mermaidScreenshotBtn = getButtonWithLogging('mermaidScreenshotBtn');
+  const progressBar = document.querySelector('.progress-bar');
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+
+  // Debug log for button elements with more details
+  console.log('Button elements found:', {
+    widthInput: widthInput ? 'Found' : 'Not found',
+    resizeBtn: resizeBtn ? 'Found' : 'Not found',
+    resetBtn: resetBtn ? 'Found' : 'Not found',
+    fullscreenBtn: fullscreenBtn ? 'Found' : 'Not found',
+    wordBtn: wordBtn ? 'Found' : 'Not found',
+    codeUiScreenshotBtn: codeUiScreenshotBtn ? 'Found' : 'Not found',
+    mermaidScreenshotBtn: mermaidScreenshotBtn ? 'Found' : 'Not found',
+    progressBar: progressBar ? 'Found' : 'Not found',
+    tabsCount: tabs.length,
+    tabContentsCount: tabContents.length
+  });
+
+  // Add click handlers with error checking
+  if (codeUiScreenshotBtn) {
+    console.log('Setting up Code/UI Screenshot button');
+    addClickHandler(codeUiScreenshotBtn, function(e) {
+      console.log('Code/UI Screenshot button clicked');
+      e.preventDefault();
+      
+      // Show loading state
+      document.getElementById('loading-overlay').style.display = 'flex';
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (!tabs || !tabs[0] || !tabs[0].id) {
+          console.error("No active tab found");
+          document.getElementById('loading-overlay').style.display = 'none';
+          alert("Could not find active tab. Please try again.");
+          return;
+        }
+        
+        // First check if we're on a valid Claude.ai page
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          function: () => {
+            // Return information about the current page that will help with debugging
+            return {
+              url: window.location.href,
+              hasArtifactElement: !!document.querySelector('#artifacts-component-root-react'),
+              documentTitle: document.title,
+              bodyClasses: document.body.className,
+              availableIds: Array.from(document.querySelectorAll('[id]')).map(el => el.id).slice(0, 20) // First 20 IDs
+            };
+          }
+        }).then(pageInfoResults => {
+          const pageInfo = pageInfoResults[0].result;
+          console.log("Page info:", pageInfo);
+          
+          if (!pageInfo.hasArtifactElement) {
+            console.warn("No artifact element found on page:", pageInfo);
+            // Continue anyway, we'll log more detailed info in the next step
+          }
+          
+          // Then inject and load html2canvas library
+          captureCodeUiArtifact(tabs[0].id)
+            .then(results => {
+              document.getElementById('loading-overlay').style.display = 'none';
+              
+              console.log("Script execution results:", results);
+              
+              if (!results || !results[0]) {
+                console.error("No results from script execution");
+                alert("Failed to execute capture script. Please try again.");
+                return;
+              }
+              
+              const result = results[0].result;
+              console.log("Result details:", result);
+              
+              if (!result) {
+                console.error("No result data from script execution");
+                alert("Failed to get capture data. Please try again.");
+                return;
+              }
+              
+              if (!result.success) {
+                console.error("Capture error:", result.error, result.details || "");
+                let errorMessage = result.error || "Unknown error occurred";
+                if (result.pageStructure) {
+                  console.log("Page structure at time of error:", result.pageStructure);
+                }
+                alert("Error capturing image: " + errorMessage);
+                return;
+              }
+              
+              // Download the image
+              try {
+                const dataUrl = result.dataUrl;
+                const link = document.createElement('a');
+                link.href = dataUrl;
+                link.download = `claude-ui-artifact-${new Date().toISOString().slice(0,19).replace(/[:]/g, '-')}.png`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                
+                console.log("Image downloaded successfully");
+              } catch (error) {
+                console.error("Error downloading image:", error);
+                alert("Error saving image: " + error.message);
+              }
+            })
+            .catch(error => {
+              document.getElementById('loading-overlay').style.display = 'none';
+              console.error("Error during capture process:", error);
+              alert("Error: " + error.message);
+            });
+        }).catch(error => {
+          document.getElementById('loading-overlay').style.display = 'none';
+          console.error("Error checking page:", error);
+          alert("Error: Unable to access page content. " + error.message);
+        });
+      });
+    });
+  }
+
+  // Fix tab functionality
+  tabs.forEach(tab => {
+    const tabElement = tab.cloneNode(true);
+    tab.parentNode.replaceChild(tabElement, tab);
+    
+    tabElement.addEventListener('click', function() {
+      console.log('Tab clicked:', this.getAttribute('data-tab'));
+      
+      // Remove active class from all tabs and contents
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(content => content.classList.remove('active'));
+      
+      // Add active class to clicked tab
+      this.classList.add('active');
+      
+      // Show corresponding content
+      const tabId = this.getAttribute('data-tab');
+      const content = document.getElementById(tabId);
+      if (content) {
+        content.classList.add('active');
+      } else {
+        console.error('Could not find tab content:', tabId);
+      }
+    });
+  });
+
+  // Get max window width and set input max
+  chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+    chrome.scripting.executeScript({
+      target: { tabId: tabs[0].id },
+      function: () => {
+        return window.innerWidth;
+      }
+    }, (results) => {
+      if (results && results[0]) {
+        const maxWidth = results[0].result;
+        widthInput.max = maxWidth;
+        updateProgressBar(widthInput.value, maxWidth);
+      }
+    });
+  });
+
+  // Load saved width
+  chrome.storage.local.get(['width'], function(result) {
+    widthInput.value = result.width || 1500;
+    updateProgressBar(widthInput.value, widthInput.max);
+  });
+
+  // Add click handlers with error checking
+  if (resizeBtn) {
+    addClickHandler(resizeBtn, function() {
+      const width = parseInt(widthInput.value);
+      updateProgressBar(width, widthInput.max);
+      chrome.storage.local.set({ width });
+
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        injectCSS(tabs[0].id, width);
+      });
+    });
+  }
+
+  if (resetBtn) {
+    addClickHandler(resetBtn, function() {
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        chrome.tabs.reload(tabs[0].id);
+      });
+    });
+  }
+
+  if (fullscreenBtn) {
+    addClickHandler(fullscreenBtn, function() {
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          function: toggleFullscreen
+        });
+      });
+    });
+  }
+
+  if (mermaidScreenshotBtn) {
+    addClickHandler(mermaidScreenshotBtn, function() {
+      // Show loading state
+      document.getElementById('loading-overlay').style.display = 'flex';
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (!tabs || !tabs[0] || !tabs[0].id) {
+          console.error("No active tab found");
+          document.getElementById('loading-overlay').style.display = 'none';
+          alert("Could not find active tab. Please try again.");
+          return;
+        }
+        
+        // First, inject and load html2canvas library
+        injectHtml2CanvasToTab(tabs[0].id)
+          .then(() => {
+            console.log("html2canvas loaded successfully, executing capture script");
+            return chrome.scripting.executeScript({
+              target: { tabId: tabs[0].id },
+              function: captureMermaidElement
+            });
+          })
+          .then((results) => {
+            console.log("Capture script executed:", results);
+            processCanvasResult(results, 'mermaid-diagram');
+          })
+          .catch((error) => {
+            console.error("Error during mermaid capture:", error);
+            alert("Error capturing mermaid diagram: " + error.message);
+          })
+          .finally(() => {
+            // Always hide the loading overlay
+            document.getElementById('loading-overlay').style.display = 'none';
+          });
+      });
+    });
+  }
+
+  if (wordBtn) {
+    addClickHandler(wordBtn, function() {
+      console.log('Word export button clicked');
+      
+      // Show loading state
+      document.getElementById('loading-overlay').style.display = 'flex';
+      
+      chrome.tabs.query({ active: true, currentWindow: true }, function(tabs) {
+        if (!tabs || !tabs[0] || !tabs[0].id) {
+          console.error("No active tab found");
+          document.getElementById('loading-overlay').style.display = 'none';
+          alert("Could not find active tab. Please try again.");
+          return;
+        }
+        
+        // First inject docx library
+        chrome.scripting.executeScript({
+          target: { tabId: tabs[0].id },
+          files: ["docx.min.js"]
+        })
+        .then(() => {
+          // Then inject docx-generator
+          return chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            files: ["docx-generator.js"]
+          });
+        })
+        .then(() => {
+          // Now execute script to get text content
+          return chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            function: () => {
+              console.log('Starting text/markdown content extraction');
+              
+              // Use specific XPath to find the text content
+              const xpath = "/html/body/div[2]/div/div/div[2]/div[2]/div[2]/div/div/div[1]/div[2]";
+              const xpathResult = document.evaluate(
+                xpath,
+                document,
+                null,
+                XPathResult.FIRST_ORDERED_NODE_TYPE,
+                null
+              );
+              
+              const element = xpathResult.singleNodeValue;
+              
+              if (!element) {
+                console.error('Could not find element using XPath');
+                throw new Error('Could not find text/markdown content - please ensure you are viewing a text or markdown artifact');
+              }
+              
+              console.log('Found element using XPath');
+              
+              // Get the text content
+              const content = element.innerText || element.textContent;
+              
+              // Clean up the content
+              const cleanContent = content.trim();
+              
+              if (!cleanContent) {
+                throw new Error('Found element but could not extract text content');
+              }
+              
+              console.log('Successfully extracted text content');
+              
+              // Generate Word document
+              return DocxGenerator.generateDocx(cleanContent)
+                .then(blob => {
+                  // Convert blob to base64
+                  return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => resolve(reader.result);
+                    reader.readAsDataURL(blob);
+                  });
+                });
+            }
+          });
+        })
+        .then((results) => {
+          if (!results || !results[0] || !results[0].result) {
+            throw new Error('Failed to generate Word document');
+          }
+          
+          // Convert base64 back to blob
+          const base64Data = results[0].result.split(',')[1];
+          const binaryData = atob(base64Data);
+          const array = new Uint8Array(binaryData.length);
+          for (let i = 0; i < binaryData.length; i++) {
+            array[i] = binaryData.charCodeAt(i);
+          }
+          const blob = new Blob([array], {type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'});
+          
+          // Download the file
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `claude-export-${new Date().toISOString().slice(0,19).replace(/[:]/g, '-')}.docx`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+          
+          console.log('Word document downloaded');
+        })
+        .catch((error) => {
+          console.error('Error during Word export:', error);
+          alert('Error exporting to Word: ' + error.message);
+        })
+        .finally(() => {
+          document.getElementById('loading-overlay').style.display = 'none';
+        });
+      });
+    });
+  }
+
+  function updateProgressBar(currentWidth, maxWidth) {
+    const percentage = (currentWidth / maxWidth) * 100;
+    progressBar.style.width = `${percentage}%`;
+  }
+
+  // Helper function to process canvas result and download image
+  function processCanvasResult(results, type) {
+    document.body.classList.remove('loading');
+    
+    if (results.success) {
+      const canvas = results.canvas;
+      const dataUrl = canvas.toDataURL('image/png');
+      
+      // Get current date-time for filename
+      const date = new Date();
+      const formattedDate = date.toISOString().replace(/:/g, '-').split('.')[0];
+      const filename = `claude-${type.toLowerCase()}-${formattedDate}.png`;
+      
+      // Create download link
+      const downloadLink = document.createElement('a');
+      downloadLink.href = dataUrl;
+      downloadLink.download = filename;
+      downloadLink.click();
+      
+      // Show success message
+      createToast('Image downloaded successfully!', 'success');
+    } else {
+      console.error('Error capturing image:', results.error);
+      createToast('Error capturing image: ' + results.error, 'error');
+    }
+  }
+
+  // Function to inject and ensure html2canvas is loaded properly
+  function injectHtml2CanvasToTab(tabId) {
+    return new Promise((resolve, reject) => {
+      // First, check if we need to inject the library
+      chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        function: () => {
+          // Check if already loaded
+          if (window.html2canvas) {
+            console.log("html2canvas already loaded");
+            return true;
+          }
+          return false;
+        }
+      }).then(results => {
+        if (results && results[0] && results[0].result === true) {
+          // Library already loaded, proceed
+          resolve();
+          return;
+        }
+        
+        // Library needs to be injected - use the extension's own copy
+        console.log("Injecting html2canvas from extension's resources");
+        
+        // Inject the library from the extension's own directory
+        chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ["html2canvas.min.js"]
+        }).then(() => {
+          // Verify the library is now available
+          chrome.scripting.executeScript({
+            target: { tabId: tabId },
+            function: () => {
+              if (typeof window.html2canvas === 'function') {
+                console.log("html2canvas successfully loaded from extension");
+                return true;
+              } else {
+                console.error("html2canvas failed to load properly");
+                return false;
+              }
+            }
+          }).then(verifyResults => {
+            if (verifyResults && verifyResults[0] && verifyResults[0].result === true) {
+              resolve();
+            } else {
+              reject(new Error("Failed to load html2canvas from extension resources"));
+            }
+          }).catch(error => {
+            reject(error);
+          });
+        }).catch(error => {
+          console.error("Failed to inject html2canvas:", error);
+          reject(error);
+        });
+      }).catch(error => {
+        reject(error);
+      });
+    });
+  }
+
+  // Function to capture UI/Code artifacts - returns a Promise
+  async function captureCodeUiArtifact(tabId) {
+    console.log('Starting artifact capture for tab:', tabId);
+    
+    try {
+      // First inject html2canvas library
+      await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        files: ['html2canvas.js']
+      });
+      
+      console.log('html2canvas injected, proceeding with artifact capture');
+      
+      // Now execute the capture script
+      return await chrome.scripting.executeScript({
+        target: { tabId: tabId },
+        function: captureCodeUiArtifactInPage
+      });
+    } catch (error) {
+      console.error('Error during artifact capture:', error);
+      throw error; // Re-throw to propagate to caller
+    }
+  }
+
+  // Function to capture Mermaid element
+  function captureMermaidElement() {
+    console.log("Starting Code/UI capture process");
+    
+    // Show loading overlay
+    document.getElementById('loading-overlay').style.display = 'block';
+    
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs.length === 0) {
+        console.error("No active tab found");
+        document.getElementById('loading-overlay').style.display = 'none';
+        createToast('Error: No active tab found', 'error');
+        return;
+      }
+      
+      // Check if we can inject into this tab
+      const url = tabs[0].url;
+      if (!url || url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:')) {
+        console.error("Cannot inject scripts into this type of page");
+        document.getElementById('loading-overlay').style.display = 'none';
+        createToast('Cannot capture from this page type. Please try on a regular web page.', 'error');
+        return;
+      }
+      
+      // Then inject and load html2canvas library
+      injectHtml2CanvasToTab(tabs[0].id)
+        .then(() => {
+          console.log("html2canvas loaded successfully, executing capture script");
+          return chrome.scripting.executeScript({
+            target: { tabId: tabs[0].id },
+            function: findIframeWithArtifact
+          });
+        })
+        .then(results => {
+          if (results && results[0] && results[0].result) {
+            const result = results[0].result;
+            if (result.iframeFound) {
+              console.log('Iframe found, proceeding to capture');
+              return chrome.scripting.executeScript({
+                target: { tabId: tabs[0].id },
+                function: captureTargetElement,
+                args: [result.selector, result.containerLevel]
+              });
+            } else {
+              console.error('No suitable iframe found');
+              document.getElementById('loading-overlay').style.display = 'none';
+              createToast('Could not find artifact iframe', 'error');
+              return null;
+            }
+          }
+        })
+        .then(results => {
+          if (results) {
+            document.getElementById('loading-overlay').style.display = 'none';
+            processCanvasResult(results, 'mermaid');
+          }
+        })
+        .catch(error => {
+          console.error("Error in captureMermaidElement:", error);
+          document.getElementById('loading-overlay').style.display = 'none';
+          createToast('Error: ' + (error.message || 'Failed to capture'), 'error');
+        });
+    });
+  }
+
+  // Function injected into the page to find the iframe with the artifact
+  function findIframeWithArtifact() {
+    console.log('Searching for artifact iframe');
+    
+    try {
+      // First find the specific iframe that contains the artifact
+      // Based on the screenshot, we're looking for iframe.h-full.w-full
+      const targetIframes = document.querySelectorAll('iframe.h-full.w-full');
+      console.log(`Found ${targetIframes.length} target iframes with class 'h-full.w-full'`);
+      
+      // If we found the specific iframe
+      if (targetIframes.length > 0) {
+        return {
+          iframeFound: true,
+          selector: 'iframe.h-full.w-full',
+          containerLevel: 2 // Navigate up 2 parent elements
+        };
+      }
+      
+      // Check for any visible iframes
+      const visibleIframes = Array.from(document.querySelectorAll('iframe'))
+        .filter(iframe => {
+          const rect = iframe.getBoundingClientRect();
+          return rect.width > 100 && rect.height > 100 && 
+                 rect.top >= 0 && rect.right > 0 &&
+                 rect.top < window.innerHeight && rect.left < window.innerWidth;
+        });
+      
+      if (visibleIframes.length > 0) {
+        console.log(`Found ${visibleIframes.length} visible iframes`);
+        return {
+          iframeFound: true,
+          selector: 'visible-iframe',
+          iframe: 0, // Use the first visible iframe
+          containerLevel: 1
+        };
+      }
+      
+      // Check for the side panel
+      const sidePanel = document.querySelector('div.fixed.bottom-0.top-0');
+      if (sidePanel) {
+        console.log('Found side panel that might contain artifact');
+        return {
+          iframeFound: true,
+          selector: 'div.fixed.bottom-0.top-0',
+          containerLevel: 0
+        };
+      }
+      
+      return {
+        iframeFound: false
+      };
+    } catch (error) {
+      console.error('Error finding iframe:', error);
+      return {
+        iframeFound: false,
+        error: error.toString()
+      };
+    }
+  }
+
+  // Function injected into the page to capture the target element
+  function captureTargetElement(selector, containerLevel) {
+    console.log(`Capturing target element with selector: ${selector}`);
+    
+    try {
+      let targetElement;
+      
+      if (selector === 'iframe.h-full.w-full') {
+        targetElement = document.querySelector(selector);
+      } else if (selector === 'visible-iframe') {
+        // Get the first visible iframe
+        targetElement = Array.from(document.querySelectorAll('iframe'))
+          .filter(iframe => {
+            const rect = iframe.getBoundingClientRect();
+            return rect.width > 100 && rect.height > 100 && 
+                   rect.top >= 0 && rect.right > 0 &&
+                   rect.top < window.innerHeight && rect.left < window.innerWidth;
+          })[0];
+      } else {
+        targetElement = document.querySelector(selector);
+      }
+      
+      if (!targetElement) {
+        console.error(`Target element with selector "${selector}" not found`);
+        return { success: false, error: 'Target element not found' };
+      }
+      
+      // Navigate up to parent container if needed
+      let container = targetElement;
+      for (let i = 0; i < containerLevel; i++) {
+        if (container.parentElement) {
+          container = container.parentElement;
+        }
+      }
+      
+      console.log('Using element for capture:', {
+        original: {
+          tagName: targetElement.tagName,
+          className: targetElement.className,
+          dimensions: {
+            width: targetElement.offsetWidth,
+            height: targetElement.offsetHeight
+          }
+        },
+        container: {
+          tagName: container.tagName,
+          className: container.className,
+          dimensions: {
+            width: container.offsetWidth,
+            height: container.offsetHeight
+          }
+        }
+      });
+      
+      // Ensure the element is in view
+      container.scrollIntoView({ behavior: 'auto', block: 'center' });
+      
+      // Use html2canvas with minimal options
+      return window.html2canvas(container, {
+        backgroundColor: null,
+        scale: window.devicePixelRatio || 1,
+        allowTaint: true,
+        useCORS: true,
+        logging: true,
+        onclone: (doc) => console.log('Document cloned for capture')
+      })
+      .then(canvas => {
+        console.log('Element capture successful!');
+        return { 
+          success: true, 
+          dataUrl: canvas.toDataURL('image/png') 
+        };
+      })
+      .catch(error => {
+        console.error('Error during capture:', error);
+        return { 
+          success: false, 
+          error: 'Capture failed: ' + error.toString() 
+        };
+      });
+    } catch (error) {
+      console.error('Error in captureTargetElement:', error);
+      return { 
+        success: false, 
+        error: 'Error setting up capture: ' + error.toString() 
+      };
+    }
+  }
+
+  // This function will be injected into the page
+  function captureCodeUiArtifactInPage() {
+    console.log('Starting Code/UI artifact capture with iframe targeting');
+    
+    try {
+      // First find the specific iframe that contains the artifact
+      // Based on the screenshot, we're looking for iframe.h-full.w-full
+      const targetIframes = document.querySelectorAll('iframe.h-full.w-full');
+      console.log(`Found ${targetIframes.length} target iframes`);
+      
+      // If we found the specific iframe
+      if (targetIframes.length > 0) {
+        const iframe = targetIframes[0];
+        const rect = iframe.getBoundingClientRect();
+        
+        console.log('Found target iframe:', {
+          dimensions: {
+            width: rect.width,
+            height: rect.height
+          },
+          position: {
+            top: rect.top,
+            left: rect.left
+          },
+          classes: iframe.className
+        });
+        
+        // Capture the specific div container that holds this iframe
+        // Navigate up the DOM tree to find a suitable container
+        let container = iframe;
+        let containerLevel = 0;
+        
+        // Try to find a container that has reasonable dimensions
+        while (container.parentElement && containerLevel < 3) {
+          container = container.parentElement;
+          containerLevel++;
+          
+          const containerRect = container.getBoundingClientRect();
+          console.log(`Container level ${containerLevel}:`, {
+            tagName: container.tagName,
+            className: container.className,
+            dimensions: {
+              width: containerRect.width,
+              height: containerRect.height
+            }
+          });
+        }
+        
+        // Scroll the iframe into view
+        iframe.scrollIntoView({ behavior: 'auto', block: 'center' });
+        
+        // Add a longer delay to ensure iframe content is fully loaded
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            try {
+              // First attempt: Try capturing the iframe directly
+              console.log('Capturing iframe directly...');
+              window.html2canvas(iframe, {
+                backgroundColor: null,
+                scale: window.devicePixelRatio || 1,
+                allowTaint: true,
+                useCORS: true,
+                logging: true,
+                ignoreElements: (element) => {
+                  return element.tagName === 'SCRIPT' || element.tagName === 'LINK';
+                },
+                onclone: (clonedDoc) => {
+                  console.log('Document cloned for capture');
+                }
+              }).then(canvas => {
+                console.log('Iframe capture successful!');
+                const dataUrl = canvas.toDataURL('image/png');
+                resolve({ success: true, dataUrl });
+              }).catch(error => {
+                console.error('Error capturing iframe:', error);
+                
+                // Fall back to capturing the container
+                console.log('Falling back to container capture');
+                window.html2canvas(container, {
+                  backgroundColor: null,
+                  scale: window.devicePixelRatio || 1,
+                  allowTaint: true,
+                  useCORS: true,
+                  logging: true,
+                  ignoreElements: (element) => {
+                    return element.tagName === 'SCRIPT' || element.tagName === 'LINK';
+                  }
+                }).then(canvas => {
+                  console.log('Container capture successful!');
+                  const dataUrl = canvas.toDataURL('image/png');
+                  resolve({ success: true, dataUrl });
+                }).catch(containerError => {
+                  console.error('Error capturing container:', containerError);
+                  resolve({ 
+                    success: false, 
+                    error: 'Failed to capture: ' + containerError.toString()
+                  });
+                });
+              });
+            } catch (error) {
+              console.error('Error in capture setup:', error);
+              resolve({ 
+                success: false, 
+                error: 'Error setting up capture: ' + error.toString()
+              });
+            }
+          }, 500); // Longer delay to ensure iframe content is loaded
+        });
+      } else {
+        // If the specific iframe wasn't found, try a more general approach
+        console.log('Target iframe not found, looking for any iframes');
+        
+        // Look for any iframe in the visible area
+        const visibleIframes = Array.from(document.querySelectorAll('iframe'))
+          .filter(iframe => {
+            const rect = iframe.getBoundingClientRect();
+            return rect.width > 100 && rect.height > 100 && 
+                   rect.top >= 0 && rect.right > 0 &&
+                   rect.top < window.innerHeight && rect.left < window.innerWidth;
+          });
+        
+        if (visibleIframes.length > 0) {
+          console.log(`Found ${visibleIframes.length} visible iframes`);
+          
+          // Take the first visible iframe
+          const iframe = visibleIframes[0];
+          const rect = iframe.getBoundingClientRect();
+          
+          console.log('Using first visible iframe:', {
+            dimensions: {
+              width: rect.width,
+              height: rect.height
+            },
+            position: {
+              top: rect.top,
+              left: rect.left
+            },
+            classes: iframe.className
+          });
+          
+          // Try to get a good container
+          const container = iframe.closest('div[class*="fixed"], div[class*="relative"], div[class*="flex"]') || iframe.parentElement;
+          
+          // Scroll the iframe into view
+          iframe.scrollIntoView({ behavior: 'auto', block: 'center' });
+          
+          return new Promise((resolve) => {
+            setTimeout(() => {
+              try {
+                // First try the iframe
+                console.log('Capturing visible iframe...');
+                window.html2canvas(iframe, {
+                  backgroundColor: null,
+                  scale: window.devicePixelRatio || 1,
+                  allowTaint: true,
+                  useCORS: true,
+                  logging: true
+                }).then(canvas => {
+                  console.log('Visible iframe capture successful!');
+                  const dataUrl = canvas.toDataURL('image/png');
+                  resolve({ success: true, dataUrl });
+                }).catch(error => {
+                  // Fall back to container
+                  console.log('Falling back to container of visible iframe');
+                  window.html2canvas(container, {
+                    backgroundColor: null,
+                    scale: window.devicePixelRatio || 1,
+                    allowTaint: true,
+                    useCORS: true,
+                    logging: true
+                  }).then(canvas => {
+                    console.log('Container capture successful!');
+                    const dataUrl = canvas.toDataURL('image/png');
+                    resolve({ success: true, dataUrl });
+                  }).catch(containerError => {
+                    console.error('Error capturing container:', containerError);
+                    resolve({ 
+                      success: false, 
+                      error: 'Failed to capture: ' + containerError.toString()
+                    });
+                  });
+                });
+              } catch (error) {
+                console.error('Error in capture setup:', error);
+                resolve({ 
+                  success: false, 
+                  error: 'Error setting up capture: ' + error.toString()
+                });
+              }
+            }, 500);
+          });
+        }
+        
+        // Last resort - try to find a side panel
+        console.log('No iframes found, looking for side panel');
+        const sidePanel = document.querySelector('div.fixed.bottom-0.top-0');
+        
+        if (sidePanel) {
+          console.log('Found side panel - attempting capture');
+          return captureFallbackElement(sidePanel);
+        }
+        
+        return { 
+          success: false, 
+          error: 'Could not find the artifact iframe or any suitable container'
+        };
+      }
+    } catch (error) {
+      console.error('Error in capture script:', error);
+      return {
+        success: false,
+        error: 'Capture script error: ' + error.toString()
+      };
+    }
+    
+    // Helper function for a clean fallback
+    function captureFallbackElement(element) {
+      console.log('Using fallback capture for element:', {
+        tagName: element.tagName,
+        className: element.className,
+        dimensions: {
+          width: element.offsetWidth,
+          height: element.offsetHeight
+        }
+      });
+      
+      // Ensure the element is in view
+      element.scrollIntoView({ behavior: 'auto', block: 'center' });
+      
+      return new Promise((resolve) => {
+        setTimeout(() => {
+          try {
+            // Minimal capture options to avoid errors
+            window.html2canvas(element, {
+              backgroundColor: null,
+              scale: window.devicePixelRatio || 1,
+              allowTaint: true,
+              useCORS: true,
+              logging: false
+            }).then(canvas => {
+              console.log('Fallback capture successful!');
+              const dataUrl = canvas.toDataURL('image/png');
+              resolve({ success: true, dataUrl });
+            }).catch(error => {
+              console.error('Fallback capture failed:', error);
+              resolve({ 
+                success: false, 
+                error: 'Capture failed: ' + error.toString() 
+              });
+            });
+          } catch (error) {
+            console.error('Error in fallback capture:', error);
+            resolve({ 
+              success: false, 
+              error: 'Error setting up capture: ' + error.toString() 
+            });
+          }
+        }, 500);
+      });
+    }
+  }
+});
+
+function injectCSS(tabId, width) {
+  chrome.scripting.executeScript({
+    target: { tabId: tabId },
+    function: (width) => {
+      // Updated selector for the new Claude.ai DOM structure
+      const containerDiv = document.querySelector("body > div.flex.min-h-screen.w-full > div > div > div.relative.flex.w-full.flex-1.overflow-x-hidden.overflow-y-scroll.pt-6.md\\:pr-8 > div:nth-child(2) > div.fixed.bottom-0.top-0.flex.w-full.flex-col.transition-\\[width\\].z-\\[5\\].right-0.md\\:w-\\[calc\\(50vw-2\\.5rem\\)\\].pointer-events-auto.pt-16.md\\:pb-4.md\\:pr-1.bottom-24.md\\:bottom-20.lg\\:bottom-0");
+      
+      // Fallback to XPath if querySelector fails
+      if (!containerDiv) {
+        const containerDivXPath = document.evaluate(
+          '/html/body/div[2]/div/div/div[2]/div[2]/div[2]',
+          document,
+          null,
+          XPathResult.FIRST_ORDERED_NODE_TYPE,
+          null
+        ).singleNodeValue;
+        
+        if (containerDivXPath) {
+          containerDivXPath.style.width = `${width}px`;
+          containerDivXPath.style.maxWidth = `${width}px`;
+        }
+      } else {
+        containerDiv.style.width = `${width}px`;
+        containerDiv.style.maxWidth = `${width}px`;
+      }
+    },
+    args: [width]
+  });
+}
+
+function toggleFullscreen() {
+  // Updated selector for the new Claude.ai DOM structure
+  const targetDiv = document.querySelector("body > div.flex.min-h-screen.w-full > div > div > div.relative.flex.w-full.flex-1.overflow-x-hidden.overflow-y-scroll.pt-6.md\\:pr-8 > div:nth-child(2) > div.fixed.bottom-0.top-0.flex.w-full.flex-col.transition-\\[width\\].z-\\[5\\].right-0.md\\:w-\\[calc\\(50vw-2\\.5rem\\)\\].pointer-events-auto.pt-16.md\\:pb-4.md\\:pr-1.bottom-24.md\\:bottom-20.lg\\:bottom-0");
+  
+  // Fallback to XPath if querySelector fails
+  if (!targetDiv) {
+    const result = document.evaluate(
+      '/html/body/div[2]/div/div/div[2]/div[2]/div[2]',
+      document,
+      null,
+      XPathResult.FIRST_ORDERED_NODE_TYPE,
+      null
+    );
+    const targetDivXPath = result.singleNodeValue;
+    
+    if (!targetDivXPath) {
+      console.error('Could not find target element for fullscreen');
+      return;
+    }
+    
+    handleFullscreen(targetDivXPath);
+  } else {
+    handleFullscreen(targetDiv);
+  }
+  
+  function handleFullscreen(element) {
+    if (!element.style.position || element.style.position !== 'fixed') {
+      // Store original styles before going fullscreen
+      element.setAttribute('data-original-styles', element.style.cssText);
+      
+      // Get browser window dimensions
+      const maxWidth = Math.min(window.innerWidth, document.documentElement.clientWidth);
+      const maxHeight = Math.min(window.innerHeight, document.documentElement.clientHeight);
+
+      // Go fullscreen with browser width limit
+      element.style.position = 'fixed';
+      element.style.top = '0';
+      element.style.left = '0';
+      element.style.width = `${maxWidth}px`;
+      element.style.height = `${maxHeight}px`;
+      element.style.zIndex = '9999';
+      element.style.backgroundColor = 'white';
+      element.style.overflow = 'auto';
+    } else {
+      // Restore original styles
+      const originalStyles = element.getAttribute('data-original-styles') || '';
+      element.style.cssText = originalStyles;
+      element.removeAttribute('data-original-styles');
+    }
+  }
+}
+
+// Function to create a toast notification
+function createToast(message, type = 'info') {
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.textContent = message;
+  
+  // Apply styles
+  Object.assign(toast.style, {
+    position: 'fixed',
+    bottom: '20px',
+    left: '50%',
+    transform: 'translateX(-50%)',
+    backgroundColor: type === 'error' ? '#f44336' : '#4CAF50',
+    color: 'white',
+    padding: '12px 20px',
+    borderRadius: '4px',
+    boxShadow: '0 2px 5px rgba(0,0,0,0.2)',
+    zIndex: '1000',
+    opacity: '0',
+    transition: 'opacity 0.3s'
+  });
+  
+  document.body.appendChild(toast);
+  
+  // Trigger animation
+  setTimeout(() => {
+    toast.style.opacity = '1';
+  }, 10);
+  
+  // Remove after 3 seconds
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => {
+      document.body.removeChild(toast);
+    }, 300);
+  }, 3000);
+} 

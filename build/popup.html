@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      width: 400px;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      color: #333;
+    }
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .title h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    .expand-icon {
+      font-size: 20px;
+    }
+    .section {
+      margin-bottom: 30px;
+    }
+    .section-title {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #444;
+    }
+    .width-control {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    input[type="number"] {
+      flex: 1;
+    }
+    .action-btn {
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-left: 10px;
+    }
+    .action-btn:hover {
+      background-color: #9B4B30;
+    }
+    .reset-btn {
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    .progress-bar {
+      height: 4px;
+      background-color: #B75B3C;
+      border-radius: 2px;
+      margin: 20px 0;
+    }
+    .display-option {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .display-option:hover {
+      background-color: #f5f5f5;
+    }
+    .export-buttons {
+      display: flex;
+      gap: 15px;
+    }
+    .export-btn {
+      flex: 1;
+      background-color: #B75B3C;
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .export-btn:hover {
+      background-color: #9B4B30;
+    }
+    .icon {
+      font-size: 18px;
+    }
+    .icon-expand {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M14 10l6.1-6.1M9 21H3v-6M10 14l-6.1 6.1"/></svg>');
+    }
+    .icon-monitor {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>');
+    }
+    .icon-download {
+      width: 20px;
+      height: 20px;
+      display: inline-block;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>');
+    }
+    
+    /* Loading overlay */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(255, 255, 255, 0.8);
+      display: none;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #B75B3C;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 10px;
+    }
+    .loading-text {
+      font-size: 14px;
+      color: #333;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    /* Tab styling */
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+      border-bottom: 1px solid #ddd;
+    }
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      border: 1px solid transparent;
+      border-bottom: none;
+      margin-bottom: -1px;
+      background-color: #f9f9f9;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      background-color: white;
+      border-color: #ddd;
+      border-bottom-color: white;
+      font-weight: bold;
+      color: #B75B3C;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="title">
+    <span class="icon-expand"></span>
+    <h1>Artifact Panel Controls</h1>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Panel Width (pixels)</div>
+    <div class="width-control">
+      <input type="number" id="width" value="1500" min="500" max="3000">
+      <button class="action-btn" id="resizeBtn">Resize</button>
+      <button class="reset-btn" id="resetBtn">Reset</button>
+    </div>
+    <div class="progress-bar"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Display Options</div>
+    <div class="display-option" id="fullscreenBtn">
+      <span class="icon-monitor"></span>
+      Toggle Fullscreen
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Export Content</div>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="text-markdown">Text/Markdown</div>
+      <div class="tab" data-tab="code-ui">Code/UI</div>
+      <div class="tab" data-tab="mermaid">Mermaid Diagram</div>
+    </div>
+    
+    <div class="tab-content active" id="text-markdown">
+      <div class="export-buttons">
+        <button class="export-btn" id="wordBtn">
+          <span class="icon-download"></span>
+          Export as Word
+        </button>
+      </div>
+      <div style="margin-top: 8px; font-size: 12px; color: #666; text-align: center;">
+        For text and markdown artifacts only
+      </div>
+    </div>
+    
+    <div class="tab-content" id="code-ui">
+      <div class="export-buttons">
+        <button class="export-btn" id="codeUiScreenshotBtn">
+          <span class="icon-download"></span>
+          Export as PNG
+        </button>
+      </div>
+      <div style="margin-top: 8px; font-size: 12px; color: #666; text-align: center;">
+        For code snippets and UI artifacts
+      </div>
+    </div>
+    
+    <div class="tab-content" id="mermaid">
+      <div class="export-buttons">
+        <button class="export-btn" id="mermaidScreenshotBtn">
+          <span class="icon-download"></span>
+          Export as PNG
+        </button>
+      </div>
+      <div style="margin-top: 8px; font-size: 12px; color: #666; text-align: center;">
+        For mermaid diagram artifacts
+      </div>
+    </div>
+  </div>
+
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <div class="loading-text">Capturing content...</div>
+  </div>
+
+  <script src="docx-generator.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html> 

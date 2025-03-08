@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mermaid Diagram Test Page</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    h1 {
+      color: #333;
+    }
+    
+    .container {
+      margin: 40px 0;
+      padding: 20px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 5px;
+      overflow-x: auto;
+    }
+    
+    .mermaid {
+      background-color: #fafafa;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 5px;
+    }
+  </style>
+  <!-- Include Mermaid library -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+  <script>
+    // Initialize Mermaid
+    document.addEventListener('DOMContentLoaded', () => {
+      mermaid.initialize({
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        flowchart: { useMaxWidth: false }
+      });
+    });
+  </script>
+</head>
+<body>
+  <h1>Mermaid Diagram Test Page</h1>
+  
+  <p>
+    This page contains sample Mermaid diagrams for testing the Mermaid Diagram Export extension.
+    Use the extension to capture these diagrams by clicking on the extension icon and choosing "Find Diagrams".
+  </p>
+  
+  <div class="container">
+    <h2>Flowchart Example</h2>
+    <div class="mermaid">
+      graph TD
+        A[Start] --> B{Is it working?}
+        B -->|Yes| C[Great!]
+        B -->|No| D[Debug]
+        C --> E[Deploy]
+        D --> B
+        E --> F[Monitor]
+        F --> G[End]
+    </div>
+  </div>
+  
+  <div class="container">
+    <h2>Sequence Diagram Example</h2>
+    <div class="mermaid">
+      sequenceDiagram
+        participant Browser
+        participant Extension
+        participant Page
+        
+        Browser->>Extension: Click icon
+        Extension->>Page: Find diagrams
+        Page-->>Extension: Return diagram positions
+        Extension->>Page: Capture screenshot
+        Page-->>Extension: Return image data
+        Extension->>Browser: Download image
+    </div>
+  </div>
+  
+  <div class="container">
+    <h2>Class Diagram Example</h2>
+    <div class="mermaid">
+      classDiagram
+        class DiagramFinder {
+          +findDiagrams()
+          +scoreCandidate()
+          -isVisible()
+        }
+        class ImageProcessor {
+          +cropImage()
+          +downloadImage()
+          -validateData()
+        }
+        class Extension {
+          +initialize()
+          +handleClick()
+        }
+        
+        Extension --> DiagramFinder
+        Extension --> ImageProcessor
+    </div>
+  </div>
+  
+  <div class="container">
+    <h2>Raw Mermaid Syntax</h2>
+    <pre>
+graph TD
+  A[Start] --> B{Is it working?}
+  B -->|Yes| C[Great!]
+  B -->|No| D[Debug]
+  C --> E[Deploy]
+  D --> B
+  E --> F[Monitor]
+  F --> G[End]
+    </pre>
+  </div>
+</body>
+</html> 
