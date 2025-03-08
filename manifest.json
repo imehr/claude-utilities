@@ -1,0 +1,47 @@
+{
+  "manifest_version": 3,
+  "name": "Claude Utilities",
+  "version": "1.1",
+  "description": "Export Claude conversations as Word, PDF, TXT or copy to clipboard",
+  "author": "Mehran Mozaffari",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png",
+    "256": "icons/icon-256.png"
+  },
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "downloads",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.anthropic.com/*",
+    "https://*.claude.ai/*"
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://*.claude.ai https://*.anthropic.com"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["https://*.anthropic.com/*", "https://*.claude.ai/*"],
+    "js": ["html2canvas.min.js", "docx.min.js", "content.js"]
+  }],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "web_accessible_resources": [{
+    "resources": ["html2canvas.min.js", "docx.min.js"],
+    "matches": ["https://*.anthropic.com/*", "https://*.claude.ai/*"]
+  }]
+} 
