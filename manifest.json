@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Claude Artifact Expander",
-  "version": "1.0",
-  "description": "Expand Claude's artifact panel to a custom width",
+  "name": "Claude Utilities",
+  "version": "1.1",
+  "description": "Export Claude conversations as Word, PDF, TXT or copy to clipboard",
   "author": "Mehran Mozaffari",
   "icons": {
     "16": "icons/icon-16.png",
@@ -14,14 +14,23 @@
   "permissions": [
     "activeTab",
     "scripting",
-    "storage",
     "downloads",
-    "clipboardWrite"
+    "storage"
   ],
   "host_permissions": [
     "https://*.anthropic.com/*",
-    "https://claude.ai/*"
+    "https://*.claude.ai/*"
   ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src https://*.claude.ai https://*.anthropic.com"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [{
+    "matches": ["https://*.anthropic.com/*", "https://*.claude.ai/*"],
+    "js": ["html2canvas.min.js", "docx.min.js", "content.js"]
+  }],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {
@@ -32,10 +41,7 @@
     }
   },
   "web_accessible_resources": [{
-    "resources": ["html2canvas.min.js"],
-    "matches": [
-      "https://*.anthropic.com/*",
-      "https://claude.ai/*"
-    ]
+    "resources": ["html2canvas.min.js", "docx.min.js"],
+    "matches": ["https://*.anthropic.com/*", "https://*.claude.ai/*"]
   }]
 } 
